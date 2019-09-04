@@ -188,7 +188,7 @@ void *hwt_log_thread(void *threadid)
 			hwt_log_queue.pop();
 		}
 		
-		if(hwt_mutex.try_lock() && start)
+		if(hwt_mutex.try_lock() && start && (pos_write-pos_read)>= 11)
 		{
 			index = (pos_read++)%BUFFER_LENGTH;
 			data = buffer[index];
