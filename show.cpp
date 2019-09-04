@@ -107,7 +107,7 @@ void *hwt_rcv_thread(void *threadid)
 			default:
 				break;
 			}
-			
+
 			hwt_rcv_queue.pop();
 		}
 
@@ -295,7 +295,7 @@ void *hwt_log_thread(void *threadid)
 				printf("wx: %0.2f, wy: %0.2f, wz: %0.2f\r\n", float(gx/32768.0*2000.0), float(gy/32768.0*2000.0), float(gz/32768.0*2000.0));
 				break;
 			case SHOW_MAG:
-				printf("mx: %0.2f, my: %0.2f, mz: %0.2f\r\n", mx, my, mz);
+				printf("mx: %d, my: %d, mz: %d\r\n", mx, my, mz);
 				break;
 			case SHOW_EULER:
 				printf("roll: %0.2f, pitch: %0.2f, yaw: %0.2f\r\n", float(roll/32768.0*180.0), float(pitch/32768.0*180.0), float(yaw/32768.0*180.0));
