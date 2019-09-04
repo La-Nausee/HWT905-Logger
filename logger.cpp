@@ -5,6 +5,7 @@
 #include <queue>
 #include <mutex>
 #include <pthread.h>
+#include <sys/time.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +68,7 @@ void *hwt_rcv_thread(void *threadid)
         pthread_exit(NULL);
     }
 
-	serial_init();
+	serial_init(fd);
 
 	hwt_mutex.unlock();
 

@@ -1,4 +1,4 @@
-CXXFLAGS := -lpthread -lm
+CXXFLAGS := -lpthread -lm -std=c++11
 all:logger show
 logger:logger.o
 	g++ -o $@ $^ $(CXXFLAGS)

@@ -74,7 +74,7 @@ void *hwt_rcv_thread(void *threadid)
         pthread_exit(NULL);
     }
 
-	serial_init();
+	serial_init(fd);
 
 	hwt_mutex.unlock();
 
@@ -141,7 +141,6 @@ void *hwt_log_thread(void *threadid)
 	size_t index;
 	int16_t ax,ay,az,gx,gy,gz,mx,my,mz,temperature;
 	int16_t roll,pitch,yaw;
-	struct timeval tp;
 
 	while(1)
 	{
@@ -183,7 +182,6 @@ void *hwt_log_thread(void *threadid)
 			data = buffer[index];
 			if(data == 0x55)
 			{
-				gettimeofday(&tp,NULL);
 				index = (pos_read++)%BUFFER_LENGTH;
 				data = buffer[index];
 				if(data == 0x51) //acc
