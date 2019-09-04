@@ -84,19 +84,22 @@ void *hwt_rcv_thread(void *threadid)
 		{
 			switch(hwt_rcv_queue.front())
 			{
-			case NEW_FILE_EVENT:
-
+			case SHOW_ACCEL:
+			case SHOW_ANGVEL:
+			case SHOW_MAG:
+			case SHOW_EULER:
 				start = true;
 
 				hwt_mutex.lock();
 				pos_read = 0;
 				pos_write = 0;
 				hwt_mutex.unlock();
-
+				
 				break;
-			case FILE_CLOSE_EVENT:
+			case SHOW_NONE:
+				start = false;
+				break;
 			case APP_EXIT_EVENT:
-
 				start = false;
 				free(buffer);
 				pthread_exit(NULL);
@@ -104,6 +107,7 @@ void *hwt_rcv_thread(void *threadid)
 			default:
 				break;
 			}
+			
 			hwt_rcv_queue.pop();
 		}
 
