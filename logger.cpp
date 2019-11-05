@@ -19,7 +19,8 @@
 
 #define DEV_NAME    	 "/dev/ttyUSB0"
 #define BAUD_RATE   	 B460800
-#define BUFFER_LENGTH    102400
+#define SWAP_SIZE        1024
+#define BUFFER_LENGTH    (SWAP_SIZE*10)
 
 #define NEW_FILE_EVENT    0x03
 #define FILE_CLOSE_EVENT  0x04
@@ -111,16 +112,16 @@ void *hwt_rcv_thread(void *threadid)
 		if(start)
 		{
 			hwt_mutex.lock();
-			size = read(fd,buffer+(pos_write%BUFFER_LENGTH),BUFFER_LENGTH - (pos_write%BUFFER_LENGTH));//SSIZE_MAX
+			size = read(fd,buffer+pos_write,BUFFER_LENGTH - pos_write);//SSIZE_MAX
 			pos_write += size;
 			if((pos_write - pos_read) > BUFFER_LENGTH)
 			{
 				printf("Buffer overflow\r\n");
 			}
-			if( (pos_write/BUFFER_LENGTH) && (pos_read/BUFFER_LENGTH))
+			if( (pos_write/SWAP_SIZE) && (pos_read/SWAP_SIZE))
 			{
-				pos_write = pos_write%BUFFER_LENGTH;
-				pos_read = pos_read%BUFFER_LENGTH;
+				pos_write = pos_write%SWAP_SIZE;
+				pos_read = pos_read%SWAP_SIZE;
 			}
 
 			hwt_mutex.unlock();
@@ -198,36 +199,36 @@ void *hwt_log_thread(void *threadid)
 		if(start && (pos_write-pos_read)>= 11)
 		{
 			hwt_mutex.lock();
-			index = (pos_read++)%BUFFER_LENGTH;
+			index = pos_read++;
 			data = buffer[index];
 			if(data == 0x55)
 			{
 				gettimeofday(&tp,NULL);
-				index = (pos_read++)%BUFFER_LENGTH;
+				index = pos_read++;
 				data = buffer[index];
 				if(data == 0x51) //acc
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					ax = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					ax |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					ay = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					ay |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					az = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					az |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = pos_read++;//skip sum
 					if(hwt_logfile.is_open())
 					{
 						hwt_logfile<<tp.tv_sec<<"."<<tp.tv_usec<<",";
@@ -236,79 +237,79 @@ void *hwt_log_thread(void *threadid)
 				}
 				else if(data == 0x52) //gyro
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					gx = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					gx |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					gy = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					gy |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					gz = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					gz |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = pos_read++;//skip sum
 					if(hwt_logfile.is_open())
 						hwt_logfile<<float(gx/32768.0*2000.0)<<","<<float(gy/32768.0*2000.0)<<","<<float(gz/32768.0*2000.0)<<",";
 				}
 				else if(data == 0x53) //euler
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					roll = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					roll |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					pitch = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					pitch |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					yaw = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					yaw |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = pos_read++;//skip sum
 					if(hwt_logfile.is_open())
 						hwt_logfile<<float(roll/32768.0*180.0)<<","<<float(pitch/32768.0*180.0)<<","<<float(yaw/32768.0*180.0)<<",";
 				}
 				else if(data == 0x54) //mag
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					mx = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					mx |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					my = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					my |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					mz = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					mz |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = pos_read++;
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = pos_read++;//skip sum
 					if(hwt_logfile.is_open())
 						hwt_logfile<<mx<<","<<my<<","<<mz<<","<<float(temperature/100.0)<<endl;
 				}
