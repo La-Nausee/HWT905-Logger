@@ -16,7 +16,7 @@
 #include <time.h>
 #include <math.h>
 
-#define DEV_NAME    	 "/dev/ttyAMA0"
+#define DEV_NAME    	 "/dev/ttyUSB0"
 #define BAUD_RATE   	 B460800
 #define BUFFER_LENGTH    10240
 
@@ -28,8 +28,6 @@
 #define SHOW_TIMESTAMP		    (1<<5)
 #define SHOW_NONE    		    (1<<6)
 #define APP_EXIT_EVENT    			(1<<7)
-
-using namespace std;
 
 using namespace std;
 
@@ -328,26 +326,32 @@ int main()
 		key = getchar();
 		if(key == 'a')
 		{	
+			hwt_rcv_queue.push(SHOW_ACCEL);
 			hwt_log_queue.push(SHOW_ACCEL);
 		}
 		else if(key == 'g')
 		{
+			hwt_rcv_queue.push(SHOW_ANGVEL);
 			hwt_log_queue.push(SHOW_ANGVEL);
 		}
 		else if(key == 'm')
 		{
+			hwt_rcv_queue.push(SHOW_MAG);
 			hwt_log_queue.push(SHOW_MAG);
 		}
 		else if(key == 'e')
 		{
+			hwt_rcv_queue.push(SHOW_EULER);
 			hwt_log_queue.push(SHOW_EULER);
 		}
 		else if(key == 'n')
 		{
+			hwt_rcv_queue.push(SHOW_NONE);
 			hwt_log_queue.push(SHOW_NONE);
 		}
 		else if(key == 'x')
 		{
+			hwt_rcv_queue.push(APP_EXIT_EVENT);
 			hwt_log_queue.push(APP_EXIT_EVENT);
 			pthread_join(thwt_log, NULL);
 			pthread_join(thwt_rcv, NULL);
