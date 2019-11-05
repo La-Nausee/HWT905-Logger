@@ -18,7 +18,7 @@
 
 #define DEV_NAME    	 "/dev/ttyUSB0"
 #define BAUD_RATE   	 B460800
-#define BUFFER_LENGTH    10240
+#define BUFFER_LENGTH    20480
 
 #define SHOW_ACCEL	  			(1<<0)
 #define SHOW_ANGVEL	  			(1<<1)
@@ -110,8 +110,9 @@ void *hwt_rcv_thread(void *threadid)
 		}
 
 
-		if(hwt_mutex.try_lock() && start)
+		if(start)
 		{
+			hwt_mutex.try_lock();
 			size = read(fd,buffer+(pos_write%BUFFER_LENGTH),BUFFER_LENGTH - (pos_write%BUFFER_LENGTH));//SSIZE_MAX
 			pos_write += size;
 			if((pos_write - pos_read) > BUFFER_LENGTH)
@@ -178,8 +179,9 @@ void *hwt_log_thread(void *threadid)
 			hwt_log_queue.pop();
 		}
 		
-		if(hwt_mutex.try_lock() && start && (pos_write-pos_read)>= 11)
+		if(start && (pos_write-pos_read)>= 11)
 		{
+			hwt_mutex.try_lock();
 			index = (pos_read++)%BUFFER_LENGTH;
 			data = buffer[index];
 			if(data == 0x55)
