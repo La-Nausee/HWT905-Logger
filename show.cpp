@@ -149,6 +149,7 @@ void *hwt_log_thread(void *threadid)
 		if(!hwt_log_queue.empty())
 		{
 			sensor = hwt_log_queue.front();
+			hwt_rcv_queue.push(hwt_log_queue.front());
 			switch(sensor)
 			{
 			case SHOW_ACCEL:
@@ -173,8 +174,7 @@ void *hwt_log_thread(void *threadid)
 			default:
 				break;
 			}
-
-			hwt_rcv_queue.push(hwt_log_queue.front());
+			
 			hwt_log_queue.pop();
 		}
 		
@@ -326,32 +326,26 @@ int main()
 		key = getchar();
 		if(key == 'a')
 		{	
-			hwt_rcv_queue.push(SHOW_ACCEL);
 			hwt_log_queue.push(SHOW_ACCEL);
 		}
 		else if(key == 'g')
 		{
-			hwt_rcv_queue.push(SHOW_ANGVEL);
 			hwt_log_queue.push(SHOW_ANGVEL);
 		}
 		else if(key == 'm')
 		{
-			hwt_rcv_queue.push(SHOW_MAG);
 			hwt_log_queue.push(SHOW_MAG);
 		}
 		else if(key == 'e')
 		{
-			hwt_rcv_queue.push(SHOW_EULER);
 			hwt_log_queue.push(SHOW_EULER);
 		}
 		else if(key == 'n')
 		{
-			hwt_rcv_queue.push(SHOW_NONE);
 			hwt_log_queue.push(SHOW_NONE);
 		}
 		else if(key == 'x')
 		{
-			hwt_rcv_queue.push(APP_EXIT_EVENT);
 			hwt_log_queue.push(APP_EXIT_EVENT);
 			pthread_join(thwt_log, NULL);
 			pthread_join(thwt_rcv, NULL);
