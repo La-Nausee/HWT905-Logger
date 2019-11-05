@@ -60,13 +60,19 @@ void *hwt_rcv_thread(void *threadid)
 	hwt_mutex.lock();
 
 	buffer = (unsigned char*)malloc(BUFFER_LENGTH);
+	if(buffer == NULL)
+	{
+		printf("Failed to allocate memory\r\n");
+		pthread_exit(NULL);
+	}
+	
 	pos_read = 0;
 	pos_write = 0;
-    if((fd = open(DEV_NAME, O_RDWR|O_NONBLOCK )) < 0)
-    {
-        printf("Failed to open serial port\r\n");
-        pthread_exit(NULL);
-    }
+	if((fd = open(DEV_NAME, O_RDWR|O_NONBLOCK )) < 0)
+	{
+		printf("Failed to open serial port\r\n");
+		pthread_exit(NULL);
+	}
 
 	serial_init(fd);
 
