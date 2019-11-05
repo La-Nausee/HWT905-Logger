@@ -114,7 +114,7 @@ void *hwt_rcv_thread(void *threadid)
 			hwt_mutex.lock();
 			size = read(fd,buffer+pos_write,BUFFER_LENGTH - pos_write);//SSIZE_MAX
 			pos_write += size;
-			if( (pos_write - BUFFER_LENGTH) >= 0　|| (pos_read - BUFFER_LENGTH) >= 0)
+			if( (pos_write - BUFFER_LENGTH) >=0 || (pos_read - BUFFER_LENGTH) >= 0)
 			{
 				printf("Buffer overflow\r\n");
 			}
