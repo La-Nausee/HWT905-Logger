@@ -66,7 +66,7 @@ void *hwt_rcv_thread(void *threadid)
 	buffer = (unsigned char*)malloc(BUFFER_LENGTH);
 	pos_read = 0;
 	pos_write = 0;
-    if((fd = open(DEV_NAME, O_RDWR|O_NONBLOCK )) < 0)
+    if((fd = open(DEV_NAME, O_RDWR )) < 0)
     {
         printf("Failed to open serial port\r\n");
         pthread_exit(NULL);
