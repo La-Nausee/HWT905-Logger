@@ -141,6 +141,7 @@ void *hwt_log_thread(void *threadid)
 	{
 		if(!hwt_log_queue.empty())
 		{
+			hwt_rcv_queue.push(hwt_log_queue.front());
 			switch(hwt_log_queue.front())
 			{
 			case NEW_FILE_EVENT:
@@ -185,7 +186,6 @@ void *hwt_log_thread(void *threadid)
 			default:
 				break;
 			}
-			hwt_rcv_queue.push(hwt_log_queue.front());
 			hwt_log_queue.pop();
 		}
 		
