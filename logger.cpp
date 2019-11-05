@@ -20,7 +20,7 @@
 #define DEV_NAME    	 "/dev/ttyUSB0"
 #define BAUD_RATE   	 B460800
 #define SWAP_SIZE        1024
-#define BUFFER_LENGTH    (SWAP_SIZE*10)
+#define BUFFER_LENGTH    (SWAP_SIZE*4)
 
 #define NEW_FILE_EVENT    0x03
 #define FILE_CLOSE_EVENT  0x04
