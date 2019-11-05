@@ -112,7 +112,7 @@ void *hwt_rcv_thread(void *threadid)
 
 		if(start)
 		{
-			hwt_mutex.try_lock();
+			hwt_mutex.lock();
 			size = read(fd,buffer+(pos_write%BUFFER_LENGTH),BUFFER_LENGTH - (pos_write%BUFFER_LENGTH));//SSIZE_MAX
 			pos_write += size;
 			if((pos_write - pos_read) > BUFFER_LENGTH)
@@ -181,7 +181,7 @@ void *hwt_log_thread(void *threadid)
 		
 		if(start && (pos_write-pos_read)>= 11)
 		{
-			hwt_mutex.try_lock();
+			hwt_mutex.lock();
 			index = (pos_read++)%BUFFER_LENGTH;
 			data = buffer[index];
 			if(data == 0x55)
