@@ -96,8 +96,10 @@ void *hwt_rcv_thread(void *threadid)
 
 				break;
 			case FILE_CLOSE_EVENT:
+				start = false;
+				break;
 			case APP_EXIT_EVENT:
-
+				printf("\r\n[INFO] exit HWT rcv thread.\r\n");
 				start = false;
 				free(buffer);
 				pthread_exit(NULL);
@@ -107,28 +109,33 @@ void *hwt_rcv_thread(void *threadid)
 			}
 			hwt_rcv_queue.pop();
 		}
-
-
+		
 		if(start)
 		{
 			hwt_mutex.lock();
-			size = read(fd,buffer+pos_write,BUFFER_LENGTH - pos_write);//SSIZE_MAX
-			pos_write += size;
-			if( (pos_write - BUFFER_LENGTH) >=0 || (pos_read - BUFFER_LENGTH) >= 0)
+			size = read(fd,buffer+pos_write,BUFFER_LENGTH - 1 - pos_write);//SSIZE_MAX
+			if(size >= 0)
+			{
+				pos_write += size;
+				if (pos_write >= BUFFER_LENGTH - 1)
+					pos_write = 0;
+			}
+			if( pos_read - pos_write == 1 || pos_read - pos_write + BUFFER_LENGTH == 1)
 			{
 				printf("Buffer overflow\r\n");
 			}
-			if( (pos_write/SWAP_SIZE) && (pos_read/SWAP_SIZE))
-			{
-				pos_write = pos_write%SWAP_SIZE;
-				pos_read = pos_read%SWAP_SIZE;
-			}
-
 			hwt_mutex.unlock();
 		}
-
-		usleep(50);
 	}
+}
+
+ssize_t increase_pos_read()
+{
+	pos_read++;
+	if (pos_read >= BUFFER_LENGTH - 1)
+		pos_read = 0;
+	
+	return pos_read;
 }
 
 void *hwt_log_thread(void *threadid)
@@ -139,7 +146,7 @@ void *hwt_log_thread(void *threadid)
 	tid = (long)threadid;
 	
 	unsigned char data;
-	size_t index;
+	ssize_t index;
 	int16_t ax,ay,az,gx,gy,gz,mx,my,mz,temperature;
 	int16_t roll,pitch,yaw;
 	struct timeval tp;
@@ -148,7 +155,6 @@ void *hwt_log_thread(void *threadid)
 	{
 		if(!hwt_log_queue.empty())
 		{
-			hwt_rcv_queue.push(hwt_log_queue.front());
 			switch(hwt_log_queue.front())
 			{
 			case NEW_FILE_EVENT:
@@ -170,65 +176,90 @@ void *hwt_log_thread(void *threadid)
 				}
 				
 				start = true;
-				
+				hwt_rcv_queue.push(NEW_FILE_EVENT);
+				hwt_log_queue.pop();
 				break;
 			case FILE_CLOSE_EVENT:
 				printf("\r\n[INFO] close HWT log file.\r\n");
+				hwt_rcv_queue.push(FILE_CLOSE_EVENT);
 				
-				if(hwt_logfile.is_open())
-					hwt_logfile.close();
+				hwt_mutex.lock();
+				index = pos_write-pos_read;
+				if (index < 0)
+					index += BUFFER_LENGTH; 
+				if (index < 11)
+				{
+					hwt_log_queue.pop();
 				
-				start = false;
+					if(hwt_logfile.is_open())
+						hwt_logfile.close();
+					
+					start = false;
+				}
+				hwt_mutex.unlock();
 				break;
 			case APP_EXIT_EVENT:
-				printf("\r\n[INFO] exit HWT log thread.\r\n");
+				hwt_rcv_queue.push(FILE_CLOSE_EVENT);
 				
-				if(hwt_logfile.is_open())
-					hwt_logfile.close();
+				hwt_mutex.lock();
+				index = pos_write-pos_read;
+				if (index < 0)
+					index += BUFFER_LENGTH; 
+				if (index < 11)
+				{
+					hwt_rcv_queue.push(APP_EXIT_EVENT);
+					hwt_log_queue.pop();
 				
-				start = false;
-
-				pthread_exit(NULL);
+					if(hwt_logfile.is_open())
+						hwt_logfile.close();
+					
+					start = false;
+					pthread_exit(NULL);
+				}
+				hwt_mutex.unlock();
+				
 				break;
 			default:
 				break;
 			}
-			hwt_log_queue.pop();
 		}
 		
-		if(start && (pos_write-pos_read)>= 11)
+		hwt_mutex.lock();
+		index = pos_write-pos_read;
+		if (index < 0)
+			index += BUFFER_LENGTH; 
+		if(start && index >= 11)
 		{
-			hwt_mutex.lock();
-			index = pos_read++;
+			index = increase_pos_read();
 			data = buffer[index];
 			if(data == 0x55)
 			{
 				gettimeofday(&tp,NULL);
-				index = pos_read++;
+				index = increase_pos_read();
 				data = buffer[index];
 				if(data == 0x51) //acc
 				{
-					index = pos_read++;
+					index = increase_pos_read();
 					ax = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					ax |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					ay = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					ay |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					az = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					az |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = pos_read++;//skip sum
+					index = increase_pos_read();//skip sum
 					if(hwt_logfile.is_open())
 					{
 						hwt_logfile<<tp.tv_sec<<"."<<tp.tv_usec<<",";
@@ -237,85 +268,85 @@ void *hwt_log_thread(void *threadid)
 				}
 				else if(data == 0x52) //gyro
 				{
-					index = pos_read++;
+					index = increase_pos_read();
 					gx = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					gx |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					gy = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					gy |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					gz = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					gz |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = pos_read++;//skip sum
+					index = increase_pos_read();//skip sum
 					if(hwt_logfile.is_open())
 						hwt_logfile<<float(gx/32768.0*2000.0)<<","<<float(gy/32768.0*2000.0)<<","<<float(gz/32768.0*2000.0)<<",";
 				}
 				else if(data == 0x53) //euler
 				{
-					index = pos_read++;
+					index = increase_pos_read();
 					roll = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					roll |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					pitch = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					pitch |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					yaw = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					yaw |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = pos_read++;//skip sum
+					index = increase_pos_read();//skip sum
 					if(hwt_logfile.is_open())
 						hwt_logfile<<float(roll/32768.0*180.0)<<","<<float(pitch/32768.0*180.0)<<","<<float(yaw/32768.0*180.0)<<",";
 				}
 				else if(data == 0x54) //mag
 				{
-					index = pos_read++;
+					index = increase_pos_read();
 					mx = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					mx |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					my = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					my |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					mz = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					mz |= (buffer[index]<<8);
 
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = pos_read++;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = pos_read++;//skip sum
+					index = increase_pos_read();//skip sum
 					if(hwt_logfile.is_open())
 						hwt_logfile<<mx<<","<<my<<","<<mz<<","<<float(temperature/100.0)<<endl;
 				}
 			}
-			hwt_mutex.unlock();
 		}
+		hwt_mutex.unlock();
 	}
 }
 

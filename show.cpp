@@ -110,27 +110,38 @@ void *hwt_rcv_thread(void *threadid)
 			hwt_rcv_queue.pop();
 		}
 
-
 		if(start)
 		{
 			hwt_mutex.lock();
-			size = read(fd,buffer+pos_write,BUFFER_LENGTH - pos_write);//SSIZE_MAX
-			pos_write += size;
-			if( (pos_write - BUFFER_LENGTH) >= 0 || (pos_read - BUFFER_LENGTH) >= 0)
+			size = read(fd,buffer+pos_write,BUFFER_LENGTH - 1 - pos_write);//SSIZE_MAX
+			if(size >= 0)
 			{
-				printf("Buffer overflow\r\n");
+				pos_write += size;
+				if (pos_write >= BUFFER_LENGTH - 1)
+					pos_write = 0;
+				if( pos_read - pos_write == 1)
+				{
+					printf("Buffer overflow\r\n");
+				}
 			}
-			if( (pos_write/SWAP_SIZE) && (pos_read/SWAP_SIZE))
-			{
-				pos_write = pos_write%SWAP_SIZE;
-				pos_read = pos_read%SWAP_SIZE;
-			}
-
 			hwt_mutex.unlock();
 		}
-
-		usleep(50);
+		else
+		{
+			read(fd,buffer,BUFFER_LENGTH - 1);
+		}
+		
+		usleep(10);
 	}
+}
+
+ssize_t increase_pos_read()
+{
+	pos_read++;
+	if (pos_read >= BUFFER_LENGTH - 1)
+		pos_read = 0;
+	
+	return pos_read;
 }
 
 void *hwt_log_thread(void *threadid)
@@ -142,7 +153,7 @@ void *hwt_log_thread(void *threadid)
 	
 	int sensor;
 	unsigned char data;
-	size_t index;
+	ssize_t index;
 	int16_t ax,ay,az,gx,gy,gz,mx,my,mz,temperature;
 	int16_t roll,pitch,yaw;
 
@@ -180,113 +191,115 @@ void *hwt_log_thread(void *threadid)
 			hwt_log_queue.pop();
 		}
 		
-		if(start && (pos_write-pos_read)>= 11)
+		hwt_mutex.lock();
+		index = pos_write-pos_read;
+		if (index < 0)
+			index += BUFFER_LENGTH; 
+		if(start && index >= 11)
 		{
-			hwt_mutex.lock();
-			index = (pos_read++)%BUFFER_LENGTH;
+			index = increase_pos_read();
 			data = buffer[index];
 			if(data == 0x55)
 			{
-				index = (pos_read++)%BUFFER_LENGTH;
+				index = increase_pos_read();
 				data = buffer[index];
 				if(data == 0x51) //acc
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					ax = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					ax |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					ay = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					ay |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					az = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					az |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = increase_pos_read();//skip sum
 				}
 				else if(data == 0x52) //gyro
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					gx = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					gx |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					gy = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					gy |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					gz = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					gz |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = increase_pos_read();//skip sum
 				}
 				else if(data == 0x53) //euler
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					roll = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					roll |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					pitch = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					pitch |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					yaw = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					yaw |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = increase_pos_read();//skip sum
 				}
 				else if(data == 0x54) //mag
 				{
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					mx = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					mx |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					my = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					my |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					mz = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					mz |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature = buffer[index];
-					index = (pos_read++)%BUFFER_LENGTH;
+					index = increase_pos_read();
 					temperature |= (buffer[index]<<8);
 
-					index = (pos_read++)%BUFFER_LENGTH;//skip sum
+					index = increase_pos_read();//skip sum
 				}
 			}
-			hwt_mutex.unlock();
 			switch(sensor)
 			{
 			case SHOW_ACCEL:
@@ -305,6 +318,7 @@ void *hwt_log_thread(void *threadid)
 				break;
 			}	
 		}
+		hwt_mutex.unlock();
 	}
 }
 
